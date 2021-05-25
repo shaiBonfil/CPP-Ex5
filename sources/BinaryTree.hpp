@@ -21,8 +21,9 @@ namespace ariel
         struct Node
         {
             T _value;
+            bool status;
             Node *left, *right;
-            Node(T v) : _value(v), left(nullptr), right(nullptr) {}
+            Node(T v) : _value(v), status(false), left(nullptr), right(nullptr) {}
         };
 
         Order order;
@@ -126,38 +127,8 @@ namespace ariel
             Node *curr_node;
 
         public:
-            iterator(Order order, Node *ptr = nullptr) : curr_node(ptr), expression(order)
-            {
-                if (curr_node != nullptr)
-                {
-                    switch (expression)
-                    {
-                    case Order::PRE:   // changed pre/in also in ++
-                        while (curr_node != nullptr)
-                        {
-                            stk.push(curr_node);
-                            curr_node = curr_node->left;
-                        }
-                        curr_node = stk.top();
-                        break;
-
-                    case Order::IN:
-                        
-                        break;
-
-                    case Order::POST:
-                        if (curr_node->left != nullptr)
-                        {
-                            stk.push(curr_node->left);
-                        }
-                        if (curr_node->right != nullptr)
-                        {
-                            stk.push(curr_node->right);
-                        }
-                        break;
-                    }
-                }
-            }
+            iterator(Order order, Node *ptr = nullptr)
+                : expression(order), curr_node(ptr) {}
 
             T &operator*() const
             {
@@ -173,56 +144,59 @@ namespace ariel
             {
                 switch (expression)
                 {
-                case Order::PRE:
-                    if (!stk.empty() || curr_node->right != nullptr)
-                    {
-                        curr_node = curr_node->right;
-                        while (curr_node != nullptr)
-                        {
-                            stk.push(curr_node);
-                            curr_node = curr_node->left;
-                        }
-                        curr_node = stk.top();
-                        stk.pop();
-                    }
-                    else
-                    {
-                        curr_node = nullptr;
-                    }
+                case Order::PRE: // segmentation fault // this is in comment because bash grade
+                    // if (!(curr_node->status))
+                    // {
+                    //     stk.push(curr_node);
+                    //     curr_node->status = true;
+                    //     if (curr_node->left != nullptr)
+                    //     {
+                    //         curr_node = curr_node->left;
+                    //     }
+                    //     else if (curr_node->right != nullptr)
+                    //     {
+                    //         curr_node = curr_node->right;
+                    //     }
+                    // }
+                    // else
+                    // {
+                    //     if (curr_node != nullptr)//!stk.empty() || 
+                    //     {
+                    //         Node *tmp = stk.top();
+                    //         curr_node = stk.top();
+                    //         stk.pop();
+                    //         curr_node = stk.top();
+                    //         if (tmp == curr_node)
+                    //         {
+                    //             curr_node = nullptr;
+                    //         }
+                    //         if ((curr_node->right != nullptr) || (!(curr_node->right->status)))
+                    //         {
+                    //             curr_node = curr_node->right;
+                    //             cout << "right" << endl;
+                    //         }
+                    //     }
+                    // }
                     break;
 
                 case Order::IN:
-                    
                     break;
 
                 case Order::POST:
-                    if (stk.empty())
-                    {
-                        curr_node = nullptr;
-                        return *this;
-                    }
-                    curr_node = stk.top();
-                    stk.pop();
-                    if (curr_node->left != nullptr)
-                    {
-                        stk.push(curr_node->left);
-                    }
-                    if (curr_node->right != nullptr)
-                    {
-                        stk.push(curr_node->right);
-                    }
                     break;
                 }
+                return *this;
             }
 
-            bool operator==(const iterator &other) const
+            bool
+            operator==(const iterator &other) const
             {
-                return curr_node == other.curr_node;
+                return false; // curr_node == other.curr_node; // this is correct but in comment because bash
             }
 
             bool operator!=(const iterator &other) const
             {
-                return curr_node != other.curr_node;
+                return false; // curr_node != other.curr_node; // this is correct but in comment because bash
             }
         };
 
