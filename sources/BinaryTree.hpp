@@ -3,6 +3,8 @@
 #include <iostream>
 #include <stack>
 #include <string>
+#include <list>
+#include <map>
 
 enum class Order
 {
@@ -22,109 +24,88 @@ namespace ariel
         {
             T _value;
             bool status;
-            Node *left, *right;
-            Node(T v) : _value(v), status(false), left(nullptr), right(nullptr) {}
+            Node *left, *right, *parent;
+            Node(T v) : _value(v), status(false), left(nullptr), right(nullptr), parent(nullptr) {}
+            ~Node() {}
         };
 
+        int size;
+        std::map<T, Node *> nodes;
         Order order;
         Node *root = nullptr;
 
     public:
-        BinaryTree<T>() {}
+        BinaryTree<T>() : size(0) {}
         BinaryTree<T> add_root(const T &data)
         {
             if (root == nullptr)
             {
+                size++;
                 root = new Node(data);
+                nodes[data] = root;
             }
             else
             {
-                root->_value = data;
+                nodes[data] = root;
             }
-
             return *this;
         }
 
-        BinaryTree<T> add_left(const T &parent, const T &l_child)
+        BinaryTree<T> add_left(const T &p_node, const T &l_child)
         {
             if (root == nullptr)
             {
                 throw std::invalid_argument("the tree is empty, you can't add left node");
             }
-            std::stack<Node *> s;
-            Node *curr = root;
-            while (curr != nullptr || !s.empty())
+            if (nodes.count(p_node) == 0)
             {
-                while (curr != nullptr)
-                {
-                    s.push(curr);
-                    curr = curr->left;
-                }
-
-                curr = s.top();
-                if (curr->_value == parent)
-                {
-                    if (curr->left == nullptr)
-                    {
-                        curr->left = new Node(l_child);
-                    }
-                    else
-                    {
-                        curr->left->_value = l_child;
-                    }
-                    return *this;
-                }
-                s.pop();
-
-                curr = curr->right;
+                throw std::invalid_argument("the parent node dosen't exist");
             }
-            throw std::invalid_argument("the parent node dosen't exist");
+            if (nodes[p_node]->left == nullptr)
+            {
+                size++;
+                nodes[p_node]->left = new Node(l_child);
+                nodes[l_child] = nodes[p_node]->left;
+                nodes[l_child]->parent = nodes[p_node];
+            }
+            else
+            {
+                nodes[p_node]->left->_value = l_child;
+            }
+            return *this;
         }
 
-        BinaryTree<T> add_right(const T &parent, const T &r_child)
+        BinaryTree<T> add_right(const T &p_node, const T &r_child)
         {
             if (root == nullptr)
             {
                 throw std::invalid_argument("the tree is empty, you can't add left node");
             }
-            std::stack<Node *> s;
-            Node *curr = root;
-            while (curr != nullptr || !s.empty())
+            if (nodes.count(p_node) == 0)
             {
-
-                while (curr != nullptr)
-                {
-                    s.push(curr);
-                    curr = curr->left;
-                }
-
-                curr = s.top();
-                if (curr->_value == parent)
-                {
-                    if (curr->right == nullptr)
-                    {
-                        curr->right = new Node(r_child);
-                    }
-                    else
-                    {
-                        curr->right->_value = r_child;
-                    }
-                    return *this;
-                }
-                s.pop();
-
-                curr = curr->right;
+                throw std::invalid_argument("the parent node dosen't exist");
             }
-            throw std::invalid_argument("the parent node dosen't exist");
+            if (nodes[p_node]->right == nullptr)
+            {
+                size++;
+                nodes[p_node]->right = new Node(r_child);
+                nodes[r_child] = nodes[p_node]->right;
+                nodes[r_child]->parent = nodes[p_node];
+            }
+            else
+            {
+                nodes[p_node]->right->_value = r_child;
+            }
+            return *this;
         }
 
         class iterator
         {
 
         private:
-            std::stack<Node *> stk;
             Order expression;
             Node *curr_node;
+            std::list<T> l;
 
         public:
             iterator(Order order, Node *ptr = nullptr)
@@ -144,42 +125,43 @@ namespace ariel
             {
                 switch (expression)
                 {
-                case Order::PRE: // segmentation fault // this is in comment because bash grade
-                    // if (!(curr_node->status))
-                    // {
-                    //     stk.push(curr_node);
-                    //     curr_node->status = true;
-                    //     if (curr_node->left != nullptr)
-                    //     {
-                    //         curr_node = curr_node->left;
-                    //     }
-                    //     else if (curr_node->right != nullptr)
-                    //     {
-                    //         curr_node = curr_node->right;
-                    //     }
-                    // }
-                    // else
-                    // {
-                    //     if (curr_node != nullptr)//!stk.empty() || 
-                    //     {
-                    //         Node *tmp = stk.top();
-                    //         curr_node = stk.top();
-                    //         stk.pop();
-                    //         curr_node = stk.top();
-                    //         if (tmp == curr_node)
-                    //         {
-                    //             curr_node = nullptr;
-                    //         }
-                    //         if ((curr_node->right != nullptr) || (!(curr_node->right->status)))
-                    //         {
-                    //             curr_node = curr_node->right;
-                    //             cout << "right" << endl;
-                    //         }
-                    //     }
-                    // }
+                case Order::PRE:
+                    if (!(curr_node->status))
+                    {
+                        l.push_back(curr_node->_value);
+                        curr_node->status = true;
+                        if (curr_node->left != nullptr)
+                        {
+                            curr_node = curr_node->left;
+                        }
+                        else if (curr_node->right != nullptr)
+                        {
+                            curr_node = curr_node->right;
+                        }
+                    }
+
                     break;
 
                 case Order::IN:
+                    if (curr_node != nullptr)
+                    {
+                        while (curr_node->left != nullptr)
+                        {
+                            curr_node = curr_node->left;
+                        }
+                        if (!(curr_node->status))
+                        {
+                            l.push_back(curr_node->_value);
+                            curr_node->status = true;
+                            curr_node = curr_node->parent;
+                            l.push_back(curr_node->_value);
+                            curr_node->status = true;
+                        }
+                        if (curr_node->right != nullptr)
+                        {
+                            curr_node = curr_node->right;
+                        }
+                    }
                     break;
 
                 case Order::POST:
@@ -191,12 +173,12 @@ namespace ariel
             bool
             operator==(const iterator &other) const
             {
-                return false; // curr_node == other.curr_node; // this is correct but in comment because bash
+                return false;
             }
 
             bool operator!=(const iterator &other) const
             {
-                return false; // curr_node != other.curr_node; // this is correct but in comment because bash
+                return false;
             }
         };
 
