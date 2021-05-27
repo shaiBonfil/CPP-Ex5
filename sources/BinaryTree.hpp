@@ -2,9 +2,9 @@
 
 #include <iostream>
 #include <stack>
-#include <string>
-#include <list>
+#include <queue>
 #include <map>
+#include <string>
 
 enum class Order
 {
@@ -23,24 +23,21 @@ namespace ariel
         struct Node
         {
             T _value;
-            bool status;
             Node *left, *right, *parent;
-            Node(T v) : _value(v), status(false), left(nullptr), right(nullptr), parent(nullptr) {}
+            Node(T v) : _value(v), left(nullptr), right(nullptr), parent(nullptr) {}
             ~Node() {}
         };
 
-        int size;
         std::map<T, Node *> nodes;
         Order order;
         Node *root = nullptr;
 
     public:
-        BinaryTree<T>() : size(0) {}
+        BinaryTree<T>() {}
         BinaryTree<T> add_root(const T &data)
         {
             if (root == nullptr)
             {
-                size++;
                 root = new Node(data);
                 nodes[data] = root;
             }
@@ -63,7 +60,6 @@ namespace ariel
             }
             if (nodes[p_node]->left == nullptr)
             {
-                size++;
                 nodes[p_node]->left = new Node(l_child);
                 nodes[l_child] = nodes[p_node]->left;
                 nodes[l_child]->parent = nodes[p_node];
@@ -87,7 +83,6 @@ namespace ariel
             }
             if (nodes[p_node]->right == nullptr)
             {
-                size++;
                 nodes[p_node]->right = new Node(r_child);
                 nodes[r_child] = nodes[p_node]->right;
                 nodes[r_child]->parent = nodes[p_node];
@@ -105,11 +100,58 @@ namespace ariel
         private:
             Order expression;
             Node *curr_node;
-            std::list<T> l;
+            std::queue<Node *> q;
 
         public:
-            iterator(Order order, Node *ptr = nullptr)
-                : expression(order), curr_node(ptr) {}
+            void preorder_fill(Node *root)
+            {
+                if (root != nullptr)
+                {
+                    q.push(root);
+                    preorder_fill(root->left);
+                    preorder_fill(root->right);
+                }
+            }
+
+            void inorder_fill(Node *root)
+            {
+                if (root != nullptr)
+                {
+                    inorder_fill(root->left);
+                    q.push(root);
+                    inorder_fill(root->right);
+                }
+            }
+
+            void postorder_fill(Node *root)
+            {
+                if (root != nullptr)
+                {
+                    postorder_fill(root->left);
+                    postorder_fill(root->right);
+                    q.push(root);
+                }
+            }
+
+            iterator(Order order, Node *ptr = nullptr) : expression(order), curr_node(ptr)
+            {
+                switch (expression)
+                {
+                case Order::PRE:
+                    preorder_fill(curr_node);
+                    break;
+
+                case Order::IN:
+                    inorder_fill(curr_node);
+                    break;
+
+                case Order::POST:
+                    postorder_fill(curr_node);
+                    break;
+                }
+                q.push(nullptr);
+                curr_node = q.front();
+            }
 
             T &operator*() const
             {
@@ -123,62 +165,20 @@ namespace ariel
 
             iterator &operator++()
             {
-                switch (expression)
-                {
-                case Order::PRE:
-                    if (!(curr_node->status))
-                    {
-                        l.push_back(curr_node->_value);
-                        curr_node->status = true;
-                        if (curr_node->left != nullptr)
-                        {
-                            curr_node = curr_node->left;
-                        }
-                        else if (curr_node->right != nullptr)
-                        {
-                            curr_node = curr_node->right;
-                        }
-                    }
+                curr_node = q.front();
+                q.pop();
 
-                    break;
-
-                case Order::IN:
-                    if (curr_node != nullptr)
-                    {
-                        while (curr_node->left != nullptr)
-                        {
-                            curr_node = curr_node->left;
-                        }
-                        if (!(curr_node->status))
-                        {
-                            l.push_back(curr_node->_value);
-                            curr_node->status = true;
-                            curr_node = curr_node->parent;
-                            l.push_back(curr_node->_value);
-                            curr_node->status = true;
-                        }
-                        if (curr_node->right != nullptr)
-                        {
-                            curr_node = curr_node->right;
-                        }
-                    }
-                    break;
-
-                case Order::POST:
-                    break;
-                }
                 return *this;
             }
 
-            bool
-            operator==(const iterator &other) const
-            {
-                return false;
-            }
+            // bool operator==(const iterator &other) const
+            // {
+            //     return curr_node->_value = other.curr_node->_value;
+            // }
 
             bool operator!=(const iterator &other) const
             {
-                return false;
+                return !q.empty();
             }
         };
 
