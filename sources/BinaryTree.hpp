@@ -5,6 +5,7 @@
 #include <queue>
 #include <map>
 #include <string>
+#include <stdexcept>
 
 enum class Order
 {
@@ -94,6 +95,24 @@ namespace ariel
             return *this;
         }
 
+        BinaryTree<T> &operator=(const T &other)
+        {
+            if (this == &other)
+            {
+                return *this;
+            }
+            delete (this->root);
+            root = new Node(other.root);
+            return *this;
+        }
+
+        BinaryTree<T> &operator=(T &&other) noexcept
+        {
+            root = other.root;
+            other.root = nullptr;
+            return *this;
+        }
+
         class iterator
         {
 
@@ -171,10 +190,19 @@ namespace ariel
                 return *this;
             }
 
-            // bool operator==(const iterator &other) const
-            // {
-            //     return curr_node->_value = other.curr_node->_value;
-            // }
+            iterator operator++(int)
+            {
+                iterator copy = *this;
+                curr_node = q.front();
+                q.pop();
+
+                return copy;
+            }
+
+            bool operator==(const iterator &other) const
+            {
+                return q.front()->_value == other.curr_node->_value;
+            }
 
             bool operator!=(const iterator &other) const
             {
