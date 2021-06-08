@@ -1,9 +1,7 @@
 #pragma once
 
 #include <iostream>
-#include <stack>
 #include <queue>
-#include <map>
 #include <string>
 #include <stdexcept>
 
@@ -24,93 +22,148 @@ namespace ariel
         struct Node
         {
             T _value;
-            Node *left, *right, *parent;
-            Node(T v) : _value(v), left(nullptr), right(nullptr), parent(nullptr) {}
-            ~Node() {}
+            Node *left, *right;
+            Node(T v) : _value(v), left(nullptr), right(nullptr) {}
         };
 
-        std::map<T, Node *> nodes;
         Order order;
         Node *root = nullptr;
 
     public:
-        BinaryTree<T>() {}
-        BinaryTree<T> add_root(const T &data)
+        BinaryTree<T>() : order(Order::IN) {}
+        ~BinaryTree<T>() {}
+
+        void deep_copy(Node *&new_node, Node *&origin_node)
         {
-            if (root == nullptr)
+            if (origin_node == nullptr)
             {
-                root = new Node(data);
-                nodes[data] = root;
+                new_node = nullptr;
             }
             else
             {
-                nodes[data] = root;
+                new_node = new Node(origin_node->_value);
+                deep_copy(new_node->left, origin_node->left);
+                deep_copy(new_node->right, origin_node->right);
             }
-            return *this;
         }
 
-        BinaryTree<T> add_left(const T &p_node, const T &l_child)
-        {
-            if (root == nullptr)
+        BinaryTree<T>(BinaryTree<T> &other) : order(other.order)
+        { //copy constractor
+            if (other.root == nullptr)
             {
-                throw std::invalid_argument("the tree is empty, you can't add left node");
-            }
-            if (nodes.count(p_node) == 0)
-            {
-                throw std::invalid_argument("the parent node dosen't exist");
-            }
-            if (nodes[p_node]->left == nullptr)
-            {
-                nodes[p_node]->left = new Node(l_child);
-                nodes[l_child] = nodes[p_node]->left;
-                nodes[l_child]->parent = nodes[p_node];
+                root = nullptr;
             }
             else
             {
-                nodes[p_node]->left->_value = l_child;
+                deep_copy(this->root, other.root);
             }
-            return *this;
         }
 
-        BinaryTree<T> add_right(const T &p_node, const T &r_child)
-        {
-            if (root == nullptr)
-            {
-                throw std::invalid_argument("the tree is empty, you can't add left node");
-            }
-            if (nodes.count(p_node) == 0)
-            {
-                throw std::invalid_argument("the parent node dosen't exist");
-            }
-            if (nodes[p_node]->right == nullptr)
-            {
-                nodes[p_node]->right = new Node(r_child);
-                nodes[r_child] = nodes[p_node]->right;
-                nodes[r_child]->parent = nodes[p_node];
-            }
-            else
-            {
-                nodes[p_node]->right->_value = r_child;
-            }
-            return *this;
-        }
-
-        BinaryTree<T> &operator=(const T &other)
+        BinaryTree<T> &operator=(BinaryTree<T> other)
         {
             if (this == &other)
             {
                 return *this;
             }
             delete (this->root);
-            root = new Node(other.root);
+            root = new Node(other.root->_value);
+            deep_copy(this->root, other.root);
             return *this;
         }
 
-        BinaryTree<T> &operator=(T &&other) noexcept
-        {
+        BinaryTree<T>(BinaryTree<T> &&other) noexcept
+        { //move constractor
+            root = other.root;
+            other.root = nullptr;
+            order = other.order;
+        }
+        BinaryTree<T> &operator=(BinaryTree<T> &&other) noexcept
+        { //move
+            delete root;
             root = other.root;
             other.root = nullptr;
             return *this;
+        }
+
+        BinaryTree<T> &add_root(const T &val)
+        {
+            if (root == nullptr)
+            {
+                root = new Node(val);
+            }
+            else
+            {
+                root->_value = val;
+            }
+            return *this;
+        }
+
+        BinaryTree<T> &add_left(const T &p_node, const T &l_child)
+        {
+            if (root == nullptr)
+            {
+                throw std::invalid_argument("the tree is empty, you can't add left node");
+            }
+            std::queue<Node *> to_add;
+            Node *curr_node = root;
+            while (!to_add.empty() || curr_node != nullptr)
+            {
+                while (curr_node != nullptr)
+                {
+                    to_add.push(curr_node);
+                    curr_node = curr_node->left;
+                }
+                curr_node = to_add.front();
+                to_add.pop();
+                if (curr_node->_value == p_node)
+                {
+                    if (curr_node->left == nullptr)
+                    {
+                        curr_node->left = new Node(l_child);
+                    }
+                    else
+                    {
+                        curr_node->left->_value = l_child;
+                    }
+                    return *this;
+                }
+                curr_node = curr_node->right;
+            }
+            throw std::invalid_argument("the parent node dosen't exist");
+        }
+
+        BinaryTree<T> &add_right(const T &p_node, const T &r_child)
+        {
+            if (root == nullptr)
+            {
+                throw std::invalid_argument("the tree is empty, you can't add left node");
+            }
+            std::queue<Node *> to_add;
+            Node *curr_node = root;
+            while (!to_add.empty() || curr_node != nullptr)
+            {
+                while (curr_node != nullptr)
+                {
+                    to_add.push(curr_node);
+                    curr_node = curr_node->left;
+                }
+                curr_node = to_add.front();
+                to_add.pop();
+                if (curr_node->_value == p_node)
+                {
+                    if (curr_node->right == nullptr)
+                    {
+                        curr_node->right = new Node(r_child);
+                    }
+                    else
+                    {
+                        curr_node->right->_value = r_child;
+                    }
+                    return *this;
+                }
+                curr_node = curr_node->right;
+            }
+            throw std::invalid_argument("the parent node dosen't exist");
         }
 
         class iterator
@@ -192,21 +245,20 @@ namespace ariel
 
             iterator operator++(int)
             {
-                iterator copy = *this;
                 curr_node = q.front();
                 q.pop();
 
-                return copy;
+                return *this;
             }
 
             bool operator==(const iterator &other) const
             {
-                return q.front()->_value == other.curr_node->_value;
+                return curr_node == other.curr_node;
             }
 
             bool operator!=(const iterator &other) const
             {
-                return !q.empty();
+                return q.empty();
             }
         };
 
@@ -248,23 +300,6 @@ namespace ariel
             if (bt.root == nullptr)
             {
                 return os;
-            }
-            std::stack<Node *> s;
-            s.push(bt.root);
-
-            while (!s.empty())
-            {
-                Node *node = s.top();
-                os << node->_value << ", ";
-                s.pop();
-                if (node->right != nullptr)
-                {
-                    s.push(node->right);
-                }
-                if (node->left != nullptr)
-                {
-                    s.push(node->left);
-                }
             }
             return os;
         }
